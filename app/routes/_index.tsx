@@ -28,11 +28,15 @@ export default function Index() {
   const data = useLoaderData<typeof loader>();
 
   return (
-    <div className="font-sans p-4">
-      <Form method="post">
-        <label>
+    <div className="font-sans p-4 flex flex-col gap-5">
+      <Form method="post" className="flex gap-2">
+        <label className="flex gap-2 items-center">
           New todo title
-          <input name="title" key={data.todos.length} />
+          <input
+            name="title"
+            key={data.todos.length}
+            className="border rounded-md p-1 border-black"
+          />
         </label>
         <input type="hidden" name="_tag" value="CreateTodo" />
         <button type="submit">Add</button>
@@ -43,7 +47,11 @@ export default function Index() {
           <div key={todo.id} className="flex gap-5 border p-2 items-center">
             <Form method="post" className="flex gap-5">
               <input type="checkbox" name="done" defaultChecked={todo.done} />
-              <input name="title" defaultValue={todo.title} />
+              <input
+                name="title"
+                defaultValue={todo.title}
+                className="border"
+              />
               <input type="hidden" name="id" value={todo.id} />
               <input type="hidden" name="_tag" value="UpdateTodo" />
               <button type="submit">Save</button>
