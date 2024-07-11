@@ -5,6 +5,7 @@ import { NodeSdk } from '@effect/opentelemetry';
 import { BatchSpanProcessor } from '@opentelemetry/sdk-trace-base';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
 import pckg from '../package.json';
+import { TodoRepo } from './services/todoRepo';
 
 type AppContext = {
   getRequestId: () => string;
@@ -21,7 +22,7 @@ export class RemixArgs extends Effect.Tag('@app/services/RemixArgs')<
     ctx: AppContext;
     requestId: string;
   }
->() { }
+>() {}
 
 export const makeRemixRuntime = <R>(layer: Layer.Layer<R, never, never>) => {
   const runtime = ManagedRuntime.make(layer);
@@ -31,7 +32,11 @@ export const makeRemixRuntime = <R>(layer: Layer.Layer<R, never, never>) => {
       Effect.Effect<
         A,
         E,
-        R | RemixArgs | HttpServerRequest.HttpServerRequest | Scope.Scope
+        | R
+        | RemixArgs
+        | HttpServerRequest.HttpServerRequest
+        | Scope.Scope
+        | TodoRepo
       >,
       never,
       R
@@ -62,6 +67,7 @@ export const makeRemixRuntime = <R>(layer: Layer.Layer<R, never, never>) => {
               HttpServerRequest.fromWeb(args.request)
             )
           ),
+          Effect.provide(TodoRepo.Live),
           Effect.scoped,
           Effect.withSpan('data-fn-handler'),
           Effect.annotateSpans('req-id', requestId)

@@ -4,7 +4,7 @@ import type { MetaFunction } from '@remix-run/node';
 import { Form, redirect, useLoaderData } from '@remix-run/react';
 import { Effect } from 'effect';
 import { makeAction, makeLoader } from '~/remix-effect';
-import { todoRepo } from '~/services/todoRepo';
+import { TodoRepo } from '~/services/todoRepo';
 import { Trash2Icon } from 'lucide-react';
 
 export const meta: MetaFunction = () => {
@@ -19,7 +19,7 @@ export const loader = makeLoader(
     yield* Effect.logDebug('init / loader');
 
     return Effect.gen(function* () {
-      return { todos: yield* todoRepo.getAll() };
+      return { todos: yield* TodoRepo.getAll };
     }).pipe(Effect.withSpan('/ loader'));
   })
 );
@@ -104,16 +104,16 @@ export const action = makeAction(
 
       if (opData._tag === 'UpdateTodo') {
         const { id, ...data } = opData;
-        yield* todoRepo.editTodo(id, data);
+        yield* TodoRepo.editTodo(id, data);
       }
 
       if (opData._tag === 'CreateTodo') {
         const { title } = opData;
-        yield* todoRepo.addTodo({ title, done: false });
+        yield* TodoRepo.addTodo({ title, done: false });
       }
 
       if (opData._tag === 'RemoveTodo') {
-        yield* todoRepo.removeTodo(opData.id);
+        yield* TodoRepo.removeTodo(opData.id);
       }
 
       return redirect('/');
