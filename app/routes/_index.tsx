@@ -4,7 +4,7 @@ import type { MetaFunction } from '@remix-run/node';
 import { Form, redirect, useLoaderData } from '@remix-run/react';
 import { Effect } from 'effect';
 import { makeAction, makeLoader } from '~/remix-effect';
-import { TodoRepo } from '~/services/todoRepo';
+import { TodoId, TodoRepo } from '~/services/todoRepo';
 import { Trash2Icon } from 'lucide-react';
 
 export const meta: MetaFunction = () => {
@@ -80,7 +80,7 @@ export const action = makeAction(
     const OperationSchema = Schema.Union(
       Schema.Struct({
         _tag: Schema.tag('UpdateTodo'),
-        id: Schema.NonEmpty,
+        id: TodoId,
         title: Schema.NonEmpty,
         done: CheckboxSchema,
       }),
@@ -90,7 +90,7 @@ export const action = makeAction(
       }),
       Schema.Struct({
         _tag: Schema.tag('RemoveTodo'),
-        id: Schema.NonEmpty,
+        id: TodoId,
       })
     );
 

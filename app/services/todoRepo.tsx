@@ -1,3 +1,4 @@
+import { Schema } from '@effect/schema';
 import { SqliteClient } from '@effect/sql-sqlite-node';
 import { Effect, Layer } from 'effect';
 
@@ -6,6 +7,38 @@ export type Todo = {
   title: string;
   done: boolean;
 };
+
+export const TodoId = Schema.NonEmpty.pipe(
+  Schema.pattern(/^\d+$/),
+  Schema.brand('TodoId')
+);
+type TodoId = Schema.Schema.Type<typeof TodoId>;
+
+const TodoSchema = Schema.Struct({
+  id: TodoId,
+  title: Schema.NonEmpty,
+  done: Schema.Boolean,
+});
+
+const BooleanFromNumber = Schema.Number.pipe(
+  Schema.transform(Schema.Boolean, {
+    encode: (b) => (b ? 1 : 0),
+    decode: globalThis.Boolean,
+  })
+);
+
+const StringFromInt = Schema.Int.pipe(
+  Schema.transform(Schema.NonEmpty, {
+    encode: globalThis.Number,
+    decode: globalThis.String,
+  })
+);
+
+const DbTodoSchema = Schema.Struct({
+  id: StringFromInt,
+  title: Schema.NonEmpty,
+  done: BooleanFromNumber,
+}).pipe(Schema.compose(TodoSchema));
 
 const make = Effect.gen(function* () {
   const sql = yield* SqliteClient.make({
@@ -24,9 +57,11 @@ const make = Effect.gen(function* () {
       todo.done ? 1 : 0
     });`;
 
-  const removeTodo = (id: string) => sql`DELETE FROM tasks WHERE id = ${id};`;
+  const removeTodo = (id: TodoId) => sql`DELETE FROM tasks WHERE id = ${id};`;
 
-  const editTodo = (id: string, data: Omit<Todo, 'id'>) =>
+  const getById = (id: TodoId) => sql`select from tasks WHERE id = ${id};`;
+
+  const editTodo = (id: TodoId, data: Omit<Todo, 'id'>) =>
     sql`
     UPDATE tasks
     SET title = ${data.title}, done = ${data.done ? 1 : 0}
@@ -34,13 +69,10 @@ const make = Effect.gen(function* () {
     `;
 
   const getAll = sql`select * from tasks`.pipe(
-    Effect.map((t) => {
-      console.log({ t });
-      return t as Todo[];
-    })
+    Effect.flatMap(Schema.decodeUnknown(Schema.Array(DbTodoSchema)))
   );
 
-  return { addTodo, removeTodo, editTodo, getAll };
+  return { addTodo, removeTodo, editTodo, getAll, getById };
 });
 
 export class TodoRepo extends Effect.Tag('@services/TodoRepo')<
