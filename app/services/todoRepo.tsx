@@ -16,7 +16,8 @@ export const todoRepo = (() => {
     },
   ];
 
-  const addTodo = (todo: Todo) => Effect.sync(() => db.push(todo));
+  const addTodo = (todo: Omit<Todo, 'id'>) =>
+    Effect.sync(() => db.push({ ...todo, id: nanoid() }));
 
   const removeTodo = (id: string) =>
     Effect.sync(() => {

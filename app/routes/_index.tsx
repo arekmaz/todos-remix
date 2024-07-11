@@ -1,10 +1,11 @@
 import { HttpServerRequest } from '@effect/platform';
 import { Schema } from '@effect/schema';
 import type { MetaFunction } from '@remix-run/node';
-import { Form, useLoaderData } from '@remix-run/react';
+import { Form, redirect, useLoaderData } from '@remix-run/react';
 import { Effect } from 'effect';
 import { makeAction, makeLoader } from '~/remix-effect';
 import { todoRepo } from '~/services/todoRepo';
+import { Trash2Icon } from 'lucide-react';
 
 export const meta: MetaFunction = () => {
   return [
@@ -28,14 +29,33 @@ export default function Index() {
 
   return (
     <div className="font-sans p-4">
+      <Form method="post">
+        <label>
+          New todo title
+          <input name="title" key={data.todos.length} />
+        </label>
+        <input type="hidden" name="_tag" value="CreateTodo" />
+        <button type="submit">Add</button>
+      </Form>
+
       <ul>
         {data.todos.map((todo) => (
-          <Form key={todo.id} className="flex gap-2" method="post">
-            <input type="checkbox" name="done" defaultChecked={todo.done} />
-            <input name="title" defaultValue={todo.title} />
-            <input type="hidden" name="id" value={todo.id} />
-            <button type="submit">Save</button>
-          </Form>
+          <div key={todo.id} className="flex gap-5 border p-2 items-center">
+            <Form method="post" className="flex gap-5">
+              <input type="checkbox" name="done" defaultChecked={todo.done} />
+              <input name="title" defaultValue={todo.title} />
+              <input type="hidden" name="id" value={todo.id} />
+              <input type="hidden" name="_tag" value="UpdateTodo" />
+              <button type="submit">Save</button>
+            </Form>
+            <Form method="post">
+              <input type="hidden" name="id" value={todo.id} />
+              <input type="hidden" name="_tag" value="RemoveTodo" />
+              <button type="submit" className="text-red-500">
+                <Trash2Icon />
+              </button>
+            </Form>
+          </div>
         ))}
       </ul>
     </div>
@@ -57,25 +77,46 @@ export const action = makeAction(
   Effect.gen(function* () {
     yield* Effect.logDebug('init / action');
 
+    const OperationSchema = Schema.Union(
+      Schema.Struct({
+        _tag: Schema.tag('UpdateTodo'),
+        id: Schema.NonEmpty,
+        title: Schema.NonEmpty,
+        done: CheckboxSchema,
+      }),
+      Schema.Struct({
+        _tag: Schema.tag('CreateTodo'),
+        title: Schema.NonEmpty,
+      }),
+      Schema.Struct({
+        _tag: Schema.tag('RemoveTodo'),
+        id: Schema.NonEmpty,
+      })
+    );
+
     return Effect.gen(function* () {
-      const { id, ...data } = yield* HttpServerRequest.HttpServerRequest.pipe(
+      const opData = yield* HttpServerRequest.HttpServerRequest.pipe(
         Effect.flatMap((r) => r.text),
         Effect.map((t) => Object.fromEntries(new URLSearchParams(t).entries())),
         Effect.tap((parsed) => Effect.log(JSON.stringify(parsed))),
-        Effect.flatMap(
-          Schema.decodeUnknown(
-            Schema.Struct({
-              id: Schema.NonEmpty,
-              title: Schema.NonEmpty,
-              done: CheckboxSchema,
-            })
-          )
-        )
+        Effect.flatMap(Schema.decodeUnknown(OperationSchema))
       );
 
-      yield* todoRepo.editTodo(id, data);
+      if (opData._tag === 'UpdateTodo') {
+        const { id, ...data } = opData;
+        yield* todoRepo.editTodo(id, data);
+      }
 
-      return { todos: yield* todoRepo.getAll() };
+      if (opData._tag === 'CreateTodo') {
+        const { title } = opData;
+        yield* todoRepo.addTodo({ title, done: false });
+      }
+
+      if (opData._tag === 'RemoveTodo') {
+        yield* todoRepo.removeTodo(opData.id);
+      }
+
+      return redirect('/');
     }).pipe(Effect.withSpan('/ action'));
   })
 );
