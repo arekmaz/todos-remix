@@ -1,5 +1,6 @@
 import { Schema } from '@effect/schema';
 import { SqliteClient } from '@effect/sql-sqlite-node';
+import { DbLive } from 'Db';
 import { Effect, Layer } from 'effect';
 
 export type Todo = {
@@ -41,9 +42,7 @@ const DbTodoSchema = Schema.Struct({
 }).pipe(Schema.compose(TodoSchema));
 
 const make = Effect.gen(function* () {
-  const sql = yield* SqliteClient.make({
-    filename: 'todos.db',
-  });
+  const sql = yield* SqliteClient.SqliteClient;
 
   yield* sql`
   CREATE TABLE IF NOT EXISTS tasks (

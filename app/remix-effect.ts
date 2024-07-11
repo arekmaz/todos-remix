@@ -1,9 +1,10 @@
-import { HttpClient, HttpServerRequest } from '@effect/platform';
-import { LoaderFunctionArgs } from '@remix-run/node';
-import { Effect, Layer, ManagedRuntime, Scope } from 'effect';
 import { NodeSdk } from '@effect/opentelemetry';
-import { BatchSpanProcessor } from '@opentelemetry/sdk-trace-base';
+import { HttpClient, HttpServerRequest } from '@effect/platform';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
+import { BatchSpanProcessor } from '@opentelemetry/sdk-trace-base';
+import { LoaderFunctionArgs } from '@remix-run/node';
+import { DbLive } from 'Db';
+import { Effect, Layer, ManagedRuntime, Scope } from 'effect';
 import pckg from '../package.json';
 import { TodoRepo } from './services/todoRepo';
 
@@ -68,6 +69,7 @@ export const makeRemixRuntime = <R>(layer: Layer.Layer<R, never, never>) => {
             )
           ),
           Effect.provide(TodoRepo.Live),
+          Effect.provide(DbLive),
           Effect.scoped,
           Effect.withSpan('data-fn-handler'),
           Effect.annotateSpans('req-id', requestId)
