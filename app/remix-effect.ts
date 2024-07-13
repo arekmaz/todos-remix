@@ -33,11 +33,7 @@ export const makeRemixRuntime = <R>(layer: Layer.Layer<R, never, never>) => {
       Effect.Effect<
         A,
         E,
-        | R
-        | RemixArgs
-        | HttpServerRequest.HttpServerRequest
-        | Scope.Scope
-        | TodoRepo
+        R | RemixArgs | HttpServerRequest.HttpServerRequest | Scope.Scope
       >,
       never,
       R
@@ -68,8 +64,6 @@ export const makeRemixRuntime = <R>(layer: Layer.Layer<R, never, never>) => {
               HttpServerRequest.fromWeb(args.request)
             )
           ),
-          Effect.provide(TodoRepo.Live),
-          Effect.provide(DbLive),
           Effect.scoped,
           Effect.withSpan('data-fn-handler'),
           Effect.annotateSpans('req-id', requestId)
@@ -86,5 +80,8 @@ export const makeRemixRuntime = <R>(layer: Layer.Layer<R, never, never>) => {
 };
 
 export const { makeAction, makeLoader, runtime } = makeRemixRuntime(
-  HttpClient.layer.pipe(Layer.provideMerge(NodeSdkLive))
+  HttpClient.layer.pipe(
+    Layer.merge(TodoRepo.Live),
+    Layer.provideMerge(NodeSdkLive)
+  )
 );

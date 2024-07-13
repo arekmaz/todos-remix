@@ -78,5 +78,8 @@ export class TodoRepo extends Effect.Tag('@services/TodoRepo')<
   TodoRepo,
   Effect.Effect.Success<typeof make>
 >() {
-  static Live = Layer.effect(this, make);
+  static Live = Layer.effect(
+    this,
+    make.pipe(Effect.provide(DbLive), Effect.orDie)
+  );
 }
